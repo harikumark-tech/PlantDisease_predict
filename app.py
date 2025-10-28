@@ -11,7 +11,6 @@ from tensorflow.keras import layers
 app = Flask(__name__)
 
 # ======== Define Custom Layers for ViT ========
-# ======== Define Custom Layers for ViT ========
 from tensorflow.keras import layers
 
 class Patches(layers.Layer):
