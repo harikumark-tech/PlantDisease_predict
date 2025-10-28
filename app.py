@@ -9,11 +9,11 @@ import io
 app = Flask(__name__)
 
 # ======== Load trained model ========
-MODEL_PATH = 'best_model.h5'   # ✅ Put your model file in the same folder
+MODEL_PATH = 'models/mobilenet_model.h5'   # ✅ Put your model file in the same folder
 model = tf.keras.models.load_model(MODEL_PATH)
 
 # Update with your class names
-CLASS_NAMES = ['Healthy', 'Disease_1', 'Disease_2', 'Disease_3']
+CLASS_NAMES = ['Blight', 'Common_Rust', 'Grey_Leaf_Spot', 'Healthy']
 
 
 # ======== Helper: preprocess image ========
