@@ -1,37 +1,108 @@
-from flask import Flask, request, render_template
+import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # optional - removes performance warnings
+
+from flask import Flask, render_template, request
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
+from tensorflow.keras import layers
 
 app = Flask(__name__)
 
-MODEL_PATH = 'models/mobilenet_model.h5'
-model = tf.keras.models.load_model(MODEL_PATH)
+# ======== Define Custom Layers for ViT ========
+# ======== Define Custom Layers for ViT ========
+from tensorflow.keras import layers
 
-# Change this order to match your training
+class Patches(layers.Layer):
+    def __init__(self, patch_size, **kwargs):
+        super(Patches, self).__init__(**kwargs)
+        self.patch_size = patch_size
+
+    def call(self, images):
+        batch_size = tf.shape(images)[0]
+        patches = tf.image.extract_patches(
+            images=images,
+            sizes=[1, self.patch_size, self.patch_size, 1],
+            strides=[1, self.patch_size, self.patch_size, 1],
+            rates=[1, 1, 1, 1],
+            padding="VALID",
+        )
+        patch_dims = patches.shape[-1]
+        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
+        return patches
+
+
+class PatchEncoder(layers.Layer):
+    def __init__(self, num_patches, projection_dim, **kwargs):
+        super(PatchEncoder, self).__init__(**kwargs)
+        self.num_patches = num_patches
+        self.projection = layers.Dense(units=projection_dim)
+        self.position_embedding = layers.Embedding(
+            input_dim=num_patches, output_dim=projection_dim
+        )
+
+    def call(self, patch):
+        positions = tf.range(start=0, limit=self.num_patches, delta=1)
+        encoded = self.projection(patch) + self.position_embedding(positions)
+        return encoded
+
+
+
+# ======== Load All Models ========
+print("Loading models... please wait ⏳")
+
+models = {
+    "CNN": tf.keras.models.load_model(r"models\plant_disease_cnn_model.h5"),
+    "MobileNet": tf.keras.models.load_model(r"models\mobilenet_model.h5"),
+    "ResNet": tf.keras.models.load_model(r"models\resnet_model.h5"),
+    "ViT": tf.keras.models.load_model(
+        r"models\vit_model_128x128.h5",
+        custom_objects={"Patches": Patches, "PatchEncoder": PatchEncoder}
+    )
+}
+
+print("✅ All models loaded successfully!")
+
+# ======== Class Labels ========
 CLASS_NAMES = ['Blight', 'Common_Rust', 'Grey_Leaf_Spot', 'Healthy']
 
+
+# ======== Image Preprocessing Function ========
 def preprocess_image(img):
     img = img.resize((128, 128))
     img_array = image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.0
+    img_array = img_array / 255.0
     return img_array
 
+
+# ======== Flask Routes ========
 @app.route('/')
 def home():
     return render_template('index.html')
 
+
 @app.route('/predict', methods=['POST'])
 def predict():
     file = request.files['file']
+    model_choice = request.form['model']
     img = Image.open(file.stream)
+
     img_array = preprocess_image(img)
-    predictions = model.predict(img_array)
+    selected_model = models[model_choice]
+    predictions = selected_model.predict(img_array)
+
     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
-    confidence = np.max(predictions[0])
-    return render_template('result.html', class_name=predicted_class, confidence=round(confidence * 100, 2))
+    confidence = np.max(predictions[0]) * 100
+
+    return render_template(
+        'result.html',
+        class_name=predicted_class,
+        confidence=round(confidence, 2),
+        model_used=model_choice
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True)

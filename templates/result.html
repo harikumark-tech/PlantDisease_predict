@@ -3,31 +3,20 @@
 <head>
     <title>Prediction Result</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #f9fff9; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 20px; 
-            text-align: center; 
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f9f4; text-align: center; margin-top: 80px; }
+        .card { background-color: #fff; display: inline-block; padding: 40px; border-radius: 10px; box-shadow: 0px 0px 10px #aaa; }
         h1 { color: #2e7d32; }
-        a { 
-            display: inline-block; 
-            margin-top: 20px; 
-            text-decoration: none; 
-            color: white; 
-            background-color: #4CAF50; 
-            padding: 10px 20px; 
-            border-radius: 5px; 
-        }
+        a { display: inline-block; margin-top: 20px; text-decoration: none; color: #fff; background-color: #4CAF50; padding: 10px 20px; border-radius: 5px; }
         a:hover { background-color: #45a049; }
     </style>
 </head>
 <body>
-    <h1>🌿 Prediction Result 🌿</h1>
-    <h2>{{ class_name }}</h2>
-    <p>Confidence: {{ confidence }}%</p>
-    <a href="/">🔙 Go Back</a>
+    <div class="card">
+        <h1>🌱 Prediction Result</h1>
+        <h2>Disease: {{ class_name }}</h2>
+        <p>Confidence: {{ confidence }}%</p>
+        <p>Model Used: {{ model_used }}</p>
+        <a href="/">🔙 Back</a>
+    </div>
 </body>
 </html>
