@@ -49,19 +49,27 @@ class PatchEncoder(layers.Layer):
 
 
 # ======== Load All Models ========
-print("Loading models... please wait ⏳")
+print("Loading models... please wait")
 
-models = {
-    "CNN": tf.keras.models.load_model(r"models\plant_disease_cnn_model.h5"),
-    "MobileNet": tf.keras.models.load_model(r"models\mobilenet_model.h5"),
-    "ResNet": tf.keras.models.load_model(r"models\resnet_model.h5"),
-    "ViT": tf.keras.models.load_model(
-        r"models\vit_model_128x128.h5",
-        custom_objects={"Patches": Patches, "PatchEncoder": PatchEncoder}
-    )
+# Load all TFLite models (CNN, MobileNet, ResNet, ViT)
+tflite_models = {
+    "CNN": tf.lite.Interpreter(model_path=r"models\plant_disease_cnn_model_fp16.tflite"),
+    "MobileNet": tf.lite.Interpreter(model_path=r"models\mobilenet_model_fp16.tflite"),
+    "ResNet": tf.lite.Interpreter(model_path=r"models\resnet_model_fp16.tflite"),
+    #"ViT": tf.lite.Interpreter(model_path=r"models\vit_model_128x128_fp16.tflite"),
 }
 
-print("✅ All models loaded successfully!")
+# Allocate tensors for all models
+for name, interpreter in tflite_models.items():
+    interpreter.allocate_tensors()
+
+vit_model = tf.keras.models.load_model(
+    r"models\vit_model_128x128.h5",
+    custom_objects={"Patches": Patches, "PatchEncoder": PatchEncoder}
+)
+
+print("All TFLite models loaded successfully!")
+
 
 # ======== Class Labels ========
 CLASS_NAMES = ['Blight', 'Common_Rust', 'Grey_Leaf_Spot', 'Healthy']
@@ -87,10 +95,20 @@ def predict():
     file = request.files['file']
     model_choice = request.form['model']
     img = Image.open(file.stream)
-
     img_array = preprocess_image(img)
-    selected_model = models[model_choice]
-    predictions = selected_model.predict(img_array)
+
+    # the vision transformer model
+    if model_choice == "ViT":
+        predictions = vit_model.predict(img_array)
+
+    #TFLite models
+    else:
+        interpreter = tflite_models[model_choice]
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+        interpreter.set_tensor(input_details[0]['index'], img_array.astype(np.float32))
+        interpreter.invoke()
+        predictions = interpreter.get_tensor(output_details[0]['index'])
 
     predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
     confidence = np.max(predictions[0]) * 100
@@ -105,3 +123,4 @@ def predict():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
