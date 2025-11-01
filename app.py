@@ -53,9 +53,9 @@ print("Loading models... please wait")
 
 # Load all TFLite models (CNN, MobileNet, ResNet, ViT)
 tflite_models = {
-    "CNN": tf.lite.Interpreter(model_path=r"models\plant_disease_cnn_model_fp16.tflite"),
-    "MobileNet": tf.lite.Interpreter(model_path=r"models\mobilenet_model_fp16.tflite"),
-    "ResNet": tf.lite.Interpreter(model_path=r"models\resnet_model_fp16.tflite"),
+    "CNN": tf.lite.Interpreter(model_path=r"model\plant_disease_cnn_model_fp16.tflite"),
+    "MobileNet": tf.lite.Interpreter(model_path=r"model\mobilenet_model_fp16.tflite"),
+    "ResNet": tf.lite.Interpreter(model_path=r"model\resnet_model_fp16.tflite"),
     #"ViT": tf.lite.Interpreter(model_path=r"models\vit_model_128x128_fp16.tflite"),
 }
 
@@ -64,7 +64,7 @@ for name, interpreter in tflite_models.items():
     interpreter.allocate_tensors()
 
 vit_model = tf.keras.models.load_model(
-    r"models\vit_model_128x128.h5",
+    r"model\vit_model_128x128.h5",
     custom_objects={"Patches": Patches, "PatchEncoder": PatchEncoder}
 )
 
